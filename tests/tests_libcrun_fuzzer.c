@@ -32,7 +32,9 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <sys/prctl.h>
+#ifdef HAVE_SYS_PRCTL_H
+#  include <sys/prctl.h>
+#endif
 
 static int test_mode = -1;
 
@@ -479,8 +481,10 @@ main (int argc, char **argv)
   if (t)
     test_mode = atoi (t);
 
+#ifdef __linux__
   if (prctl (PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) < 0)
     libcrun_fail_with_error (1, "%s", "cannot set subreaper");
+#endif
   signal (SIGCHLD, sig_chld);
 
   if (argc > 1)
@@ -497,7 +501,7 @@ main (int argc, char **argv)
       return LLVMFuzzerTestOneInput (content, len);
     }
 #ifdef FUZZER
-  extern void HF_ITER (uint8_t * *buf, size_t * len);
+  extern void HF_ITER (uint8_t **buf, size_t *len);
   for (;;)
     {
       size_t len;

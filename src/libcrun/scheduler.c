@@ -22,8 +22,12 @@
 #include "linux.h"
 #include "utils.h"
 #include <sched.h>
-#include <linux/sched.h>
-#include <sys/sysmacros.h>
+#ifdef HAVE_LINUX_SCHED_H
+#  include <linux/sched.h>
+#endif
+#ifdef HAVE_SYS_SYSMACROS_H
+#  include <sys/sysmacros.h>
+#endif
 #include <limits.h>
 #include <inttypes.h>
 #include <ocispec/runtime_spec_schema_config_schema.h>
@@ -90,11 +94,13 @@ libcrun_set_scheduler (pid_t pid, runtime_spec_schema_config_schema_process *pro
     int value;
   } policies[] = {
     { "SCHED_OTHER", SCHED_OTHER },
+#ifdef __linux__
     { "SCHED_BATCH", SCHED_BATCH },
     { "SCHED_IDLE", SCHED_IDLE },
     { "SCHED_FIFO", SCHED_FIFO },
-    { "SCHED_RR", SCHED_RR },
     { "SCHED_DEADLINE", SCHED_DEADLINE },
+#endif
+    { "SCHED_RR", SCHED_RR },
     { NULL, 0 },
   };
 

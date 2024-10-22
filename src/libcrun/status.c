@@ -30,6 +30,10 @@
 #include <dirent.h>
 #include <signal.h>
 
+#ifndef O_PATH
+#  define O_PATH 0 // Not needed on macOS
+#endif
+
 #define YAJL_STR(x) ((const unsigned char *) (x))
 
 struct pid_stat
@@ -497,7 +501,11 @@ rmdirfd (const char *namedir, int fd, libcrun_error_t *err)
                   proc_fd_path_t procpath;
 
                   get_proc_self_fd_path (procpath, tfd);
-                  if (umount2 (procpath, MNT_DETACH) == 0)
+#ifdef __linux__
+                  if (umount2( procpath, MNT_DETACH) == 0)
+#else
+                  if (unmount( procpath, MNT_FORCE ) == 0)
+#endif
                     goto retry_unlink;
                 }
             }

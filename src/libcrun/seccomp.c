@@ -29,14 +29,22 @@
 #include <unistd.h>
 #include <sys/mount.h>
 #include <sys/syscall.h>
-#include <sys/prctl.h>
+#if HAVE_SYS_PRCTL_H
+#  include <sys/prctl.h>
+#endif
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <sys/sysmacros.h>
+#ifdef HAVE_SYS_SYSMACROS_H
+#  include <sys/sysmacros.h>
+#endif
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+
+#ifndef O_PATH
+#define O_PATH 0
+#endif
 
 #if HAVE_STDATOMIC_H
 #  include <stdatomic.h>
@@ -47,10 +55,11 @@
 
 #ifdef HAVE_SECCOMP
 #  include <seccomp.h>
+#  include <linux/seccomp.h>
 #endif
-#include <linux/seccomp.h>
-#include <linux/filter.h>
-#include <sys/prctl.h>
+#ifdef HAVE_LINUX_FILTER_H
+#  include <linux/filter.h>
+#endif
 #include <sys/syscall.h>
 
 #ifndef __NR_seccomp
@@ -99,7 +108,9 @@ get_cache_dir_inode_max_size (off_t size_rundir)
 static int
 syscall_seccomp (unsigned int operation, unsigned int flags, void *args)
 {
+#ifdef __linux__
   return (int) syscall (__NR_seccomp, operation, flags, args);
+#endif
 }
 
 static unsigned long
@@ -554,7 +565,11 @@ evict_cache (int root_dfd, libcrun_error_t *err)
               entries = xrealloc (entries, sizeof (struct cache_entry) * (n_entries + 1));
 
               memcpy (entries[n_entries].checksum, de->d_name, sizeof (seccomp_checksum_t));
+#ifdef __linux__
               entries[n_entries].atime = st.st_atim;
+#else
+              entries[n_entries].atime = st.st_atimespec;
+#endif
               n_entries++;
             }
         }

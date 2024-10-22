@@ -21,6 +21,7 @@
 #include <config.h>
 #include "error.h"
 
+#ifdef HAVE_SECCOMP
 #if ! (HAVE_DLOPEN && HAVE_SECCOMP_GET_NOTIF_SIZES)
 #  define SECCOMP_NOTIFY_SKIP_TYPEDEF
 #endif
@@ -37,5 +38,5 @@ LIBCRUN_PUBLIC int libcrun_free_seccomp_notify_plugins (struct seccomp_notify_co
 
 #define cleanup_seccomp_notify_context __attribute__ ((cleanup (cleanup_seccomp_notify_pluginsp)))
 void cleanup_seccomp_notify_pluginsp (void *p);
-
+#endif
 #endif

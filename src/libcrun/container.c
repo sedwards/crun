@@ -45,9 +45,15 @@
 #include "io_priority.h"
 #include "cgroup.h"
 #include "cgroup-utils.h"
-#include <sys/prctl.h>
-#include <sys/signalfd.h>
-#include <sys/epoll.h>
+#ifdef HAVE_SYS_PRCTL_H
+#  include <sys/prctl.h>
+#endif
+#ifdef HAVE_SYS_SIGNALFD_H
+#  include <sys/signalfd.h>
+#endif
+#ifdef HAVE_SYS_EPOLL_H
+#  include <sys/epoll.h>
+#endif
 #include <sys/socket.h>
 #ifdef HAVE_CAP
 #  include <sys/capability.h>
@@ -1976,8 +1982,10 @@ wait_for_process (struct wait_for_process_args *args, libcrun_error_t *err)
   int levelfds[10];
   int levelfds_len = 0;
   int fds_len = 0;
-  cleanup_seccomp_notify_context struct seccomp_notify_context_s *seccomp_notify_ctx = NULL;
 
+#ifdef HAVE_SECCOMP
+  cleanup_seccomp_notify_context struct seccomp_notify_context_s *seccomp_notify_ctx = NULL;
+#endif
   container_exit_code = 0;
 
   if (args == NULL || args->context == NULL)
@@ -2020,6 +2028,7 @@ wait_for_process (struct wait_for_process_args *args, libcrun_error_t *err)
   if (last_process)
     return container_exit_code;
 
+#ifdef HAVE_SECCOMP
   if (args->seccomp_notify_fd >= 0)
     {
       cleanup_free char *state_root = NULL;
@@ -2053,6 +2062,7 @@ wait_for_process (struct wait_for_process_args *args, libcrun_error_t *err)
 
       fds[fds_len++] = args->seccomp_notify_fd;
     }
+#endif
 
   fds[fds_len++] = signalfd;
   if (args->notify_socket >= 0)
@@ -2065,10 +2075,11 @@ wait_for_process (struct wait_for_process_args *args, libcrun_error_t *err)
   fds[fds_len++] = -1;
   levelfds[levelfds_len++] = -1;
 
+#ifdef HAVE_LINUX_EPOLL_H_FIXME
   epollfd = epoll_helper (fds, levelfds, err);
   if (UNLIKELY (epollfd < 0))
     return epollfd;
-
+#endif
   while (1)
     {
       struct signalfd_siginfo si;
@@ -2091,8 +2102,10 @@ wait_for_process (struct wait_for_process_args *args, libcrun_error_t *err)
             }
           else if (events[i].data.fd == args->seccomp_notify_fd)
             {
+#ifdef HAVE_SECCOMP
               ret = libcrun_seccomp_notify_plugins (seccomp_notify_ctx,
                                                     args->seccomp_notify_fd, err);
+#endif
               if (UNLIKELY (ret < 0))
                 return ret;
             }
@@ -2346,7 +2359,9 @@ libcrun_container_run_internal (libcrun_container_t *container, libcrun_context_
   cleanup_close int hooks_err_fd = -1;
   cleanup_close int own_seccomp_receiver_fd = -1;
   cleanup_close int seccomp_notify_fd = -1;
+#ifdef HAVE_SECCOMP
   const char *seccomp_notify_plugins = NULL;
+#endif
   int cgroup_manager;
   uid_t root_uid = -1;
   gid_t root_gid = -1;
@@ -2382,7 +2397,9 @@ libcrun_container_run_internal (libcrun_container_t *container, libcrun_context_
   if (! detach || context->notify_socket)
     {
       libcrun_debug ("Setting child subreaper");
+#ifdef __linux__
       ret = prctl (PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0);
+#endif
       if (UNLIKELY (ret < 0))
         return crun_make_error (err, errno, "set child subreaper");
     }
@@ -3686,7 +3703,9 @@ libcrun_container_exec_with_options (libcrun_context_t *context, const char *id,
   if (UNLIKELY (ret < 0))
     return ret;
 
+#ifdef __linux__
   ret = prctl (PR_SET_DUMPABLE, 0, 0, 0, 0);
+#endif
   if (UNLIKELY (ret < 0))
     return crun_make_error (err, errno, "prctl (PR_SET_DUMPABLE)");
 

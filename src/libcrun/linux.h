@@ -17,6 +17,7 @@
  */
 #ifndef LINUX_H
 #define LINUX_H
+
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,13 +40,44 @@ struct device_s
   gid_t gid;
 };
 
+#ifdef __APPLE__
+#  include <spawn.h>
+#  include <unistd.h>
+#  include <errno.h>
+#  include <mach-o/dyld.h>
+
+extern char **environ; /* Use the existing environment for posix_spawn */
+#endif                 /* __APPLE__ */
+
 static inline int
 syscall_clone (unsigned long flags, void *child_stack)
 {
-#if defined __s390__ || defined __CRIS__
+#if defined __APPLE__
+  pid_t pid;
+  char exec_path[1024];
+  uint32_t size = sizeof (exec_path);
+
+  if (_NSGetExecutablePath (exec_path, &size) != 0)
+    {
+      return -errno;
+    }
+
+  char *argv[] = { exec_path, NULL };
+
+  int status = posix_spawn (&pid, exec_path, NULL, NULL, argv, environ);
+  if (status == 0)
+    {
+      return (int) pid;
+    }
+  else
+    {
+      return -errno;
+    }
+
+#elif defined __s390__ || defined __CRIS__
   return (int) syscall (__NR_clone, child_stack, flags);
 #else
-  return (int) syscall (__NR_clone, flags, child_stack);
+  return (int) syscall (__NR_clone, flags, child_stack)
 #endif
 }
 

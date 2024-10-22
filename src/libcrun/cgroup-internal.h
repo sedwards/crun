@@ -21,6 +21,10 @@
 #include "container.h"
 #include "utils.h"
 
+#ifdef __APPLE__
+#  define O_PATH 0 // Not needed on macOS
+#endif
+
 enum
 {
   CGROUP_MEMORY = 1 << 0,

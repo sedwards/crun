@@ -26,11 +26,44 @@ AC_PATH_PROG(MD2MAN, go-md2man)
 
 AM_CONDITIONAL([HAVE_MD2MAN], [test "x$ac_cv_path_MD2MAN" != x])
 
-AC_CHECK_HEADERS([error.h linux/openat2.h stdatomic.h linux/ioprio.h])
+AC_CHECK_HEADERS([
+error.h
+linux/filter.h
+linux/ioprio.h
+linux/limits.h
+linux/magic.h
+linux/netlink.h
+linux/openat2.h
+linux/sched.h
+stdatomic.h
+sys/epoll.h
+sys/personality.h
+sys/prctl.h
+sys/signalfd.h
+sys/statfs.h
+sys/sys/vfs.h
+sys/sysmacros.h])
 
 AC_CHECK_TYPES([atomic_int], [], [], [[#include <stdatomic.h>]])
 
 AC_CHECK_FUNCS(copy_file_range fgetxattr statx fgetpwent_r issetugid memfd_create)
+
+case "$host_os" in
+  darwin*)
+    AC_DEFINE([APPLE_PLATFORM], [1], [Define if on Apple platforms])
+    AC_DEFINE([MS_RDONLY], [MNT_RDONLY], [Define MS_RDONLY as MNT_RDONLY on macOS])
+    AC_DEFINE([MS_BIND], [MNT_UPDATE], [Define MS_BIND as MNT_UPDATE on macOS])
+    AC_DEFINE([MS_NODEV], [MNT_NODEV], [Define MS_NODEV as MNT_NODEV on macOS])
+    AC_DEFINE([MS_NOSUID], [MNT_NOSUID], [Define FIXME1])
+    AC_DEFINE([MS_NOEXEC], [MNT_NOEXEC], [Define FIXME2])
+    AC_DEFINE([MS_NODEV], [MNT_NODEV], [Define FIXME3])
+    AC_DEFINE([MS_SYNCHRONOUS], [MNT_SYNCHRONOUS], [Define FIXME4])
+    AC_DEFINE([MS_DIRSYNC], [MNT_SYNCHRONOUS], [Define FIXME5])
+    ;;
+  *)
+    # Non-macOS platforms
+    ;;
+esac
 
 AC_ARG_ENABLE(crun,
 AS_HELP_STRING([--enable-crun], [Include crun executable in installation (default: yes)]),
@@ -235,7 +268,7 @@ AS_IF([test "x$with_lua_bindings" = "xyes"], [
 AS_IF([test "x$use_fPIC" = "xyes"], [
 	# configure should not touch CFLAGS/LDFLAGS but we need it to propagate it
 	# to libocispec.
-	export CFLAGS="$CFLAGS -fPIC"
+	export CFLAGS="$CFLAGS -fPIC -Wno-implicit-function-declaration -Wno-ignored-attributes"
 	export LDFLAGS="$LDFLAGS -fPIC"
 ])
 
@@ -309,7 +342,7 @@ if test -z "$GPERF"; then
 	AC_MSG_NOTICE(gperf not found - cannot rebuild signal parser code)
 fi
 
-AC_SEARCH_LIBS([argp_parse], [argp], [], [AC_MSG_ERROR([*** argp functions not found - install libargp or argp_standalone])])
+#AC_SEARCH_LIBS([argp_parse], [argp], [], [AC_MSG_ERROR([*** argp functions not found - install libargp or argp_standalone])])
 
 AM_CONDITIONAL([PYTHON_BINDINGS], [test "x$with_python_bindings" = "xyes"])
 AM_CONDITIONAL([LUA_BINDINGS], [test "x$with_lua_bindings" = "xyes"])

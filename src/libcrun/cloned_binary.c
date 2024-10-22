@@ -51,14 +51,23 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef __APPLE__
 #include <sys/statfs.h>
 #include <sys/vfs.h>
 #include <sys/mman.h>
 #include <sys/mount.h>
 #include <sys/sendfile.h>
-#include <sys/syscall.h>
 
+#include <sys/syscall.h>
 #include "utils.h"
+#else    
+#define MS_RDONLY 		0
+#define MS_BIND 		0
+#define MS_REMOUNT 		0
+#define O_PATH O_RDONLY
+#define MNT_DETACH MNT_FORCE
+#include <sys/mount.h> 
+#endif
 
 /* Use our own wrapper for memfd_create. */
 #if !defined(SYS_memfd_create) && defined(__NR_memfd_create)
@@ -395,11 +404,17 @@ static int try_bindfd(void)
 	 * complicated and it's only worth doing if someone actually needs it.
 	 */
 	ret = -EPERM;
+#ifdef __APPLE__
+        if (mount("/proc/self/exe", template, "", MS_BIND) < 0)
+                goto out;       
+        if (mount("", template, "", MS_REMOUNT | MS_BIND | MS_RDONLY) < 0)
+                goto out_umount;
+#else
 	if (mount("/proc/self/exe", template, "", MS_BIND, "") < 0)
 		goto out;
-	if (mount("", template, "", MS_REMOUNT | MS_BIND | MS_RDONLY, "") < 0)
+	if (mount("", template, "", MS_REMOUNT | MS_BIND | MS_RDONLY) < 0)
 		goto out_umount;
-
+#endif
 
 	/* Get read-only handle that we're sure can't be made read-write. */
 	ret = open(template, O_PATH | O_CLOEXEC);

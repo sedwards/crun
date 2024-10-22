@@ -19,7 +19,7 @@
 #include <config.h>
 #include <git-version.h>
 #include <stdlib.h>
-#include <argp.h>
+#include "libargp/argp.h"
 #include <string.h>
 #include <libgen.h>
 

@@ -33,13 +33,18 @@
 #  define HAVE_NEW_MOUNT_API
 #endif
 
-#include <sys/prctl.h>
+#ifdef HAVE_SYS_PRCTL_H
+#  include <sys/prctl.h>
+#endif
+
 #ifdef HAVE_CAP
 #  include <sys/capability.h>
 #endif
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <sys/sysmacros.h>
+#ifdef HAVE_SYS_SYSMACROS_H
+#  include <sys/sysmacros.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <grp.h>
@@ -56,14 +61,22 @@
 #include <sys/socket.h>
 #include <libgen.h>
 #include <sys/wait.h>
-#include <sys/vfs.h>
+#ifdef HAVE_SYS_VFS_H
+#  include <sys/vfs.h>
+#endif
 #include <limits.h>
 #include <inttypes.h>
-#include <sys/personality.h>
+#ifdef HAVE_SYS_PERSONALITY_H
+#  include <sys/personality.h>
+#endif
 #include <net/if.h>
 #include <sys/xattr.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
+#ifdef HAVE_LINUX_NETLINK_H
+#  include <linux/netlink.h>
+#endif
+#ifdef HAVE_LINUX_RTNETLINK_H
+#  include <linux/rtnetlink.h>
+#endif
 #include <sched.h>
 
 #include <yajl/yajl_tree.h>
@@ -634,7 +647,9 @@ maybe_create_userns_for_idmapped_mount (runtime_spec_schema_config_schema *def,
   if (! need_new_userns)
     return 0;
 
+#ifdef __linux__
   pid = syscall_clone (CLONE_NEWUSER | SIGCHLD, NULL);
+
   if (UNLIKELY (pid < 0))
     return crun_make_error (err, errno, "clone");
 
@@ -702,7 +717,9 @@ maybe_create_userns_for_idmapped_mount (runtime_spec_schema_config_schema *def,
             return ret;
         }
     }
-
+#else
+  pid = fork(); /* handle without user namespace isolation */
+#endif
   *pid_out = pid;
   pid = -1;
   return 0;

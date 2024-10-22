@@ -25,10 +25,31 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/mount.h>
+
+#include <sys/mount.h> // Include mount flags for Linux
 
 #include "utils.h"
 #include "mount_flags.h"
+
+#ifdef APPLE_PLATFORM
+/* Linux Mount Flags and Closest macOS Equivalents */
+#define 	MS_RDONLY	MNT_RDONLY
+#define         MS_NOSUID	MNT_NOSUID
+#define		MS_NOEXEC	MNT_NOEXEC
+#define 	MS_NODEV	MNT_NODEV
+#define 	MS_SYNCHRONOUS	MNT_SYNCHRONOUS
+#define		MS_DIRSYNC	MNT_SYNCHRONOUS /* (Closest) - Not exactly the same, but forces synchronous directory updates. */
+/*
+MS_REMOUNT	No direct equivalent	macOS remount operations are done with mount using specific flags.
+MS_BIND	No equivalent	macOS does not have a bind mount equivalent.
+MS_RELATIME	No equivalent	macOS doesn't have access time options like Linux.
+MS_NOATIME	No equivalent	No access time flags in macOS.
+MS_NODIRATIME	No equivalent	Access time changes for directories are not configurable.
+MS_MANDLOCK	No equivalent	Mandatory locking not available on macOS.
+MS_PRIVATE	No equivalent	macOS doesn't support private mount propagation.
+MS_REC	No equivalent	Recursive mount options are not supported on macOS.
+MNT_DETACH	No equivalent	macOS does not have the umount2 or MNT_DETACH functionality. */
+#endif
 
 %}
 struct propagation_flags_s;
@@ -111,3 +132,4 @@ get_mount_flags_from_wordlist (void)
 
   return flags;
 }
+#endif

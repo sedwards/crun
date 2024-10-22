@@ -27,8 +27,12 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/socket.h>
-#include <sys/signalfd.h>
-#include <sys/epoll.h>
+#ifdef HAVE_SYS_SIGNALFD_H
+#  include <sys/signalfd.h>
+#endif
+#ifdef HAVE_SYS_EPOLL_H
+#  include <sys/epoll.h>
+#endif
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <pwd.h>
@@ -36,9 +40,15 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/xattr.h>
-#include <sys/sysmacros.h>
-#include <sys/vfs.h>
-#include <linux/magic.h>
+#ifdef HAVE_SYS_SYSMACROS_H
+#  include <sys/sysmacros.h>
+#endif
+#ifdef HAVE_SYS_VFS_H
+#  include <sys/vfs.h>
+#endif
+#ifdef HAVE_LINUX_MAGIC_H
+#  include <linux/magic.h>
+#endif
 #include <limits.h>
 #include <sys/mman.h>
 #ifdef HAVE_LINUX_OPENAT2_H
@@ -2182,9 +2192,9 @@ copy_recursive_fd_to_fd (int srcdirfd, int dfd, const char *srcname, const char 
       if (UNLIKELY (ret < 0))
         return crun_make_error (err, errno, "chown `%s/%s`", destname, de->d_name);
 
-        /*
-         * ALLPERMS is not defined by POSIX
-         */
+      /*
+       * ALLPERMS is not defined by POSIX
+       */
 #ifndef ALLPERMS
 #  define ALLPERMS (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)
 #endif
